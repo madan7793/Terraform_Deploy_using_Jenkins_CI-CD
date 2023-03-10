@@ -1,47 +1,80 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.0"
+    }
+  }
+}
+
+# Configure the AWS Provider
 provider "aws" {
-  region     = "us-east-1"
-  
-  
+  region = "us-east-1"
 }
 
-#Create a new EC2 launch configuration
-resource "aws_instance" "ec2_public" {
-  ami                         = var.ami_id
-  instance_type               = var.instance_type
-  key_name                    = var.key_name
-  security_groups             = ["${aws_security_group.ssh-security-group.id}"]
-  subnet_id                   = aws_subnet.public-subnet-1.id
-  associate_public_ip_address = true
-  #user_data                   = "${data.template_file.provision.rendered}"
-  #iam_instance_profile = "${aws_iam_instance_profile.some_profile.id}"
-  lifecycle {
-    create_before_destroy = true
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
   }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "web" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t3.micro"
+
   tags = {
-    "Name" = "EC2-PUBLIC"
+    Name = "HelloWorld"
   }
-  
- 
 }
-#Create a new EC2 launch configuration
-resource "aws_instance" "ec2_private" {
-  ami                         = var.ami_id
-  instance_type               = var.instance_type
-  key_name                    = var.key_name
-  security_groups             = ["${aws_security_group.webserver-security-group.id}"]
-  subnet_id                   = aws_subnet.private-subnet-1.id
-  associate_public_ip_address = false
-  #user_data                   = "${data.template_file.provision.rendered}"
-  #iam_instance_profile = "${aws_iam_instance_profile.some_profile.id}"
-  lifecycle {
-    create_before_destroy = true
-  }
+
+
+resource "aws_vpc" "my_vpc" {
+  cidr_block = "172.16.0.0/16"
+
   tags = {
-    "Name" = "EC2-PRIVATE"
+    Name = "tf-example"
   }
- 
 }
-###############################
- 
 
+resource "aws_subnet" "my_subnet" {
+  vpc_id            = aws_vpc.my_vpc.id
+  cidr_block        = "172.16.10.0/24"
+  availability_zone = "us-west-2a"
 
+  tags = {
+    Name = "tf-example"
+  }
+}
+
+resource "aws_network_interface" "foo" {
+  subnet_id   = aws_subnet.my_subnet.id
+  private_ips = ["172.16.10.100"]
+
+  tags = {
+    Name = "primary_network_interface"
+  }
+}
+
+resource "aws_instance" "foo" {
+  ami           = "ami-005e54dee72cc1d00" # us-west-2
+  instance_type = "t2.micro"
+
+  network_interface {
+    network_interface_id = aws_network_interface.foo.id
+    device_index         = 0
+  }
+
+  credit_specification {
+    cpu_credits = "unlimited"
+  }
+}
