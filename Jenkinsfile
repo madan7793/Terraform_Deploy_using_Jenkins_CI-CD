@@ -21,14 +21,7 @@ pipeline {
             }
         }
 
-        stage('Approval') {
-            when {
-                not {
-                    equals expected: true, actual: params.autoApprove
-                }
-            }
-        }
-
+        
         stage ("terraform apply") {
             steps {
                 sh ('terraform apply ')
