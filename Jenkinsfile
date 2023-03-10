@@ -24,7 +24,7 @@ pipeline {
         
         stage ("terraform apply") {
             steps {
-                sh ('terraform apply -input=false -auto-approve -lock=false tfplan')
+                sh ('terraform apply -input=false -auto-approve')
             }
         }
                 
