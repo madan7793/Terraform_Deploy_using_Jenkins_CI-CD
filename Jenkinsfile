@@ -17,12 +17,29 @@ pipeline {
         
         stage ("terraform  plan") {
             steps {
-                sh ('terraform plan -out') 
+                sh ('terraform plan') 
             }
         }
+
+        stage('Approval') {
+            when {
+                not {
+                    equals expected: true, actual: params.autoApprove
+                }
+            }
+
+            steps {
+                script {
+                    def plan = readFile 'tfplan.txt'
+                    input message: "Do you want to apply the plan?",
+                        parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
+                }
+            }
+        }
+
         stage ("terraform apply") {
             steps {
-                sh ('terraform apply --auto-approve')
+                sh ('terraform apply -input=false tfplan')
             }
         }
                 
