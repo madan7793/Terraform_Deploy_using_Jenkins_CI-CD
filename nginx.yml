@@ -1,5 +1,5 @@
 ---
-- hosts: all
+- hosts: 54.165.122.180
   tasks:
     - name: ensure nginx is at the latest version
       apt: name=nginx state=latest
